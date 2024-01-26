@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8" />
+		<title>Zendesk JWT SSO</title>
+		<link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet" />
+	</head>
+	<body>
+		<div class="min-h-screen flex items-center justify-center bg-gray-100">
+			<form class="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4" id="loginForm" onsubmit="handleLogin(event)">
+				<div class="mb-4">
+					<label class="block text-gray-700 text-sm font-bold mb-2" for="name"
+						>Name<span class="text-red-500">*</span></label
+					>
+					<input
+						required
+						class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+						id="name"
+						type="text"
+						placeholder="Name"
+					/>
+				</div>
+				<div class="mb-4">
+					<label class="block text-gray-700 text-sm font-bold mb-2" for="email"
+						>Email<span class="text-red-500">*</span></label
+					>
+					<input
+						required
+						class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+						id="email"
+						type="email"
+						placeholder="Email"
+					/>
+				</div>
+				<div class="mb-6">
+					<label class="block text-gray-700 text-sm font-bold mb-2" for="externalId"
+						>External ID<span class="text-red-500">*</span></label
+					>
+					<input
+						required
+						class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+						id="externalId"
+						type="text"
+						placeholder="External ID"
+					/>
+				</div>
+				<div class="flex items-center justify-between">
+					<input
+						class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+						type="submit"
+						value="Sign-in to Zendesk"
+					/>
+				</div>
+			</form>
+			<form id="jwtForm" method="post" action="">
+				<input id="jwtInput" type="hidden" name="jwt" />
+			</form>
+		</div>
+
+		<script>
+			async function handleLogin(event) {
+				try {
+					event.preventDefault();
+
+					const name = document.getElementById('name').value;
+					const email = document.getElementById('email').value;
+					const externalId = document.getElementById('externalId').value;
+
+					if (!name || !email || !externalId) {
+						alert('All fields are mandatory!');
+						return;
+					}
+
+					if (!validateEmail(email)) {
+						alert('Invalid email address!');
+						return;
+					}
+
+					const response = await fetch('http://localhost:3000/jwt', {
+						method: 'POST',
+						headers: {
+							'Content-Type': 'application/json',
+						},
+						body: JSON.stringify({
+							external_id: externalId,
+							email: email,
+							name: name,
+						}),
+					});
+
+					if (response.ok) {
+						const responseData = await response.json();
+						document.getElementById('jwtForm').action = `https://${responseData.subdomain}.zendesk.com/access/jwt`;
+						document.getElementById('jwtInput').value = responseData.jwt;
+						document.forms['jwtForm'].submit();
+					} else {
+						console.error('Failed to fetch JWT:', response.statusText);
+					}
+				} catch (error) {
+					console.error('An error occurred:', error);
+				}
+			}
+
+			function validateEmail(email) {
+				const re = /\S+@\S+\.\S+/;
+				return re.test(email);
+			}
+		</script>
+	</body>
+</html>
